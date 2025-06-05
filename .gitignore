@@ -79,9 +79,14 @@ frontend/dist/
 
 # Data files
 *.csv
-*.json
+data/*.json
 *.parquet
 *.xlsx
+
+# Allow configuration files
+!railway.json
+!package.json
+!tsconfig.json
 
 # Jupyter Notebooks checkpoints
 .ipynb_checkpoints/
