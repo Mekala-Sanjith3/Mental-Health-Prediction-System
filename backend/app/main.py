@@ -26,7 +26,12 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # React app origins
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000",
+        "https://mental-health-frontend.onrender.com",
+        "https://*.onrender.com"
+    ],  # React app origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

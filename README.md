@@ -1,6 +1,14 @@
 # Mental Health Treatment Prediction System
 
-A machine learning system that predicts mental health treatment requirements based on survey responses. Features a React frontend, FastAPI backend, and trained ML models for accurate predictions.
+A comprehensive machine learning application that predicts mental health treatment requirements based on survey responses. Built with React, FastAPI, and advanced ML models for accurate mental health assessments.
+
+## 🚀 Live Demo
+[Add your deployed app URL here when available]
+
+## 👨‍💻 Developer
+**Mekala Maria Sanjith Reddy**
+
+A sophisticated full-stack ML system showcasing modern web development and machine learning techniques.
 
 ## 🌟 Features
 
@@ -213,7 +221,7 @@ This system is for educational and research purposes only. It should not be used
 
 ## 📞 Support
 
-For support, please open an issue on GitHub or contact [your-email@example.com].
+For support, please open an issue on GitHub or contact [2300031810cseh1@gmail.com].
 
 ---
 
