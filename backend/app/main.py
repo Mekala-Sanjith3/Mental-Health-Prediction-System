@@ -30,7 +30,8 @@ app.add_middleware(
         "http://localhost:3000", 
         "http://127.0.0.1:3000",
         "https://mental-health-frontend.onrender.com",
-        "https://*.onrender.com"
+        "https://mental-health-frontend-q7qc.onrender.com",
+        "*"  # Allow all origins for demo - replace with specific domains in production
     ],  # React app origins
     allow_credentials=True,
     allow_methods=["*"],
