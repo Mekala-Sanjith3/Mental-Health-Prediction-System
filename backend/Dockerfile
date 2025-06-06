@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -20,12 +21,16 @@ COPY . .
 # Create models directory
 RUN mkdir -p models
 
-# Expose port
-EXPOSE 8000
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Expose port (Railway uses PORT env variable)
+ENV PORT=8000
+EXPOSE $PORT
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+  CMD curl -f http://localhost:$PORT/health || exit 1
 
 # Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT 

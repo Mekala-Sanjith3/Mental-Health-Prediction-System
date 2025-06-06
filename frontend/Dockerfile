@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (including serve for production)
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -15,17 +15,23 @@ COPY . .
 # Build the app
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Production stage - using serve instead of nginx for Railway compatibility
+FROM node:18-alpine
 
-# Copy built app to nginx
-COPY --from=build /app/build /usr/share/nginx/html
+WORKDIR /app
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Install serve globally
+RUN npm install -g serve
 
-# Expose port
-EXPOSE 80
+# Copy built app
+COPY --from=build /app/build ./build
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"] 
+# Copy package.json for serve configuration
+COPY --from=build /app/package.json ./
+
+# Railway uses PORT env variable
+ENV PORT=3000
+EXPOSE $PORT
+
+# Start the app with serve
+CMD serve -s build -l $PORT 
