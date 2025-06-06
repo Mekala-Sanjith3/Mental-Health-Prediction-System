@@ -123,36 +123,51 @@ def load_model():
     global model_data, preprocessor
     
     try:
+        # Get the directory of the current script
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        models_dir = os.path.join(current_dir, "models")
+        
         # Load model
-        model_path = "./models/best_model.pkl"
+        model_path = os.path.join(models_dir, "best_model.pkl")
         if os.path.exists(model_path):
             with open(model_path, 'rb') as f:
                 model_data = pickle.load(f)
-            logger.info("Model loaded successfully")
+            logger.info(f"Model loaded successfully from {model_path}")
         else:
             logger.warning(f"Model file not found at {model_path}")
+            logger.info(f"Current working directory: {os.getcwd()}")
+            logger.info(f"Script directory: {current_dir}")
+            logger.info(f"Models directory: {models_dir}")
+            if os.path.exists(models_dir):
+                logger.info(f"Models directory contents: {os.listdir(models_dir)}")
             
         # Load individual components
-        scaler_path = "./models/preprocessor.pkl"
-        encoders_path = "./models/encoders.pkl"
-        features_path = "./models/feature_names.pkl"
+        scaler_path = os.path.join(models_dir, "preprocessor.pkl")
+        encoders_path = os.path.join(models_dir, "encoders.pkl")
+        features_path = os.path.join(models_dir, "feature_names.pkl")
         
         preprocessor = {}
         
         if os.path.exists(scaler_path):
             with open(scaler_path, 'rb') as f:
                 preprocessor['scaler'] = pickle.load(f)
-            logger.info("Scaler loaded successfully")
+            logger.info(f"Scaler loaded successfully from {scaler_path}")
+        else:
+            logger.warning(f"Scaler file not found at {scaler_path}")
         
         if os.path.exists(encoders_path):
             with open(encoders_path, 'rb') as f:
                 preprocessor['label_encoders'] = pickle.load(f)
-            logger.info("Encoders loaded successfully")
+            logger.info(f"Encoders loaded successfully from {encoders_path}")
+        else:
+            logger.warning(f"Encoders file not found at {encoders_path}")
             
         if os.path.exists(features_path):
             with open(features_path, 'rb') as f:
                 preprocessor['feature_columns'] = pickle.load(f)
-            logger.info("Feature names loaded successfully")
+            logger.info(f"Feature names loaded successfully from {features_path}")
+        else:
+            logger.warning(f"Feature names file not found at {features_path}")
             
     except Exception as e:
         logger.error(f"Error loading model/preprocessor: {e}")
