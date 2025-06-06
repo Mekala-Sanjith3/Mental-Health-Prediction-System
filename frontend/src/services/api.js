@@ -36,7 +36,44 @@ const PredictionAPI = {
   async predict(data, token = 'demo-token-12345') {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const response = await apiClient.post('/predict', data, { headers });
-    return response.data;
+    
+    // Enhanced response structure validation
+    const result = response.data;
+    
+    // Ensure backward compatibility while supporting enhanced features
+    return {
+      ...result,
+      // Legacy fields for backward compatibility
+      confidence: result.confidence_metrics?.overall || 0,
+      prediction: result.prediction,
+      prediction_label: result.prediction_label,
+      feature_importance: result.feature_importance || {},
+      timestamp: result.timestamp,
+      
+      // Enhanced fields
+      confidence_metrics: result.confidence_metrics || {
+        overall: result.confidence || 0,
+        level: 'Unknown',
+        model_certainty: 'Confidence information not available',
+        prediction_strength: 'Unknown'
+      },
+      risk_assessment: result.risk_assessment || {
+        level: 'Unknown',
+        score: 0,
+        factors: [],
+        protective_factors: []
+      },
+      detailed_analysis: result.detailed_analysis || {
+        primary_concerns: [],
+        contributing_factors: [],
+        positive_indicators: [],
+        areas_of_focus: []
+      },
+      personalized_recommendations: result.personalized_recommendations || [],
+      educational_content: result.educational_content || [],
+      support_resources: result.support_resources || {},
+      session_id: result.session_id || 'unknown_session'
+    };
   },
 
   async getModelInfo(token = 'demo-token-12345') {
@@ -48,7 +85,9 @@ const PredictionAPI = {
       return {
         model_name: 'RandomForest',
         model_type: 'RandomForestClassifier',
-        status: 'loaded'
+        status: 'loaded',
+        accuracy: 'Unknown',
+        features_count: 0
       };
     }
   },
