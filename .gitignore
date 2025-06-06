@@ -80,7 +80,6 @@ models/
 *.npy
 
 # Data files
-*.csv
 data/*.json
 *.parquet
 *.xlsx
