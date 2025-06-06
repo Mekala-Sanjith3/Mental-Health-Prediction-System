@@ -22,10 +22,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# Update CORS for deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # React app origins
+    allow_origins=["*"],  # Allow all origins for demo
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -117,37 +117,131 @@ class HealthResponse(BaseModel):
     timestamp: str
     model_loaded: bool
     version: str
+    environment: str = "production"
 
 def load_model():
     """Load the trained model and preprocessor"""
     global model_data, preprocessor
     
     try:
-        # Load model
-        model_path = "../models/best_model.pkl"
-        if os.path.exists(model_path):
-            with open(model_path, 'rb') as f:
-                model_data = pickle.load(f)
-            logger.info(f"Model loaded: {model_data['model_name']}")
-        else:
-            logger.warning(f"Model file not found at {model_path}")
+        # Try different model paths for deployment
+        model_paths = [
+            "models/best_model.pkl",
+            "../models/best_model.pkl",
+            "/app/models/best_model.pkl"
+        ]
+        
+        preprocessor_paths = [
+            "models/preprocessor.pkl",
+            "../models/preprocessor.pkl", 
+            "/app/models/preprocessor.pkl"
+        ]
+        
+        model_loaded = False
+        for path in model_paths:
+            if os.path.exists(path):
+                with open(path, 'rb') as f:
+                    model_data = pickle.load(f)
+                logger.info(f"Model loaded from: {path}")
+                model_loaded = True
+                break
+        
+        if not model_loaded:
+            logger.warning("Model file not found in any expected location")
             
-        # Load preprocessor
-        preprocessor_path = "../models/preprocessor.pkl"
-        if os.path.exists(preprocessor_path):
-            with open(preprocessor_path, 'rb') as f:
-                preprocessor = pickle.load(f)
-            logger.info("Preprocessor loaded successfully")
-        else:
-            logger.warning(f"Preprocessor file not found at {preprocessor_path}")
+        preprocessor_loaded = False
+        for path in preprocessor_paths:
+            if os.path.exists(path):
+                with open(path, 'rb') as f:
+                    preprocessor = pickle.load(f)
+                logger.info(f"Preprocessor loaded from: {path}")
+                preprocessor_loaded = True
+                break
+        
+        if not preprocessor_loaded:
+            logger.warning("Preprocessor file not found in any expected location")
             
     except Exception as e:
         logger.error(f"Error loading model/preprocessor: {e}")
 
+def create_fallback_prediction(input_data: MentalHealthInput) -> EnhancedPredictionResponse:
+    """Create a fallback prediction when models are not available"""
+    
+    # Simple rule-based fallback logic
+    risk_factors = 0
+    
+    if input_data.family_history == "Yes":
+        risk_factors += 1
+    if input_data.Mental_Health_History == "Yes":
+        risk_factors += 1
+    if input_data.Growing_Stress == "Yes":
+        risk_factors += 1
+    if input_data.Coping_Struggles == "Yes":
+        risk_factors += 1
+    if input_data.Changes_Habits == "Yes":
+        risk_factors += 1
+    if input_data.Social_Weakness == "Yes":
+        risk_factors += 1
+    if input_data.Mood_Swings in ["High", "Medium"]:
+        risk_factors += 1
+    if input_data.Days_Indoors in ["31-60 days", "More than 2 months"]:
+        risk_factors += 1
+    
+    # Determine prediction based on risk factors
+    prediction = 1 if risk_factors >= 4 else 0
+    confidence = min(0.6 + (risk_factors * 0.05), 0.85)
+    
+    confidence_level = "Moderate" if confidence >= 0.6 else "Low"
+    risk_level = "Moderate" if risk_factors >= 4 else "Low"
+    
+    return EnhancedPredictionResponse(
+        prediction=prediction,
+        prediction_label="Treatment Recommended" if prediction == 1 else "Treatment Not Required",
+        confidence_metrics=ConfidenceMetrics(
+            overall=confidence,
+            level=confidence_level,
+            model_certainty=f"Fallback assessment based on {risk_factors} risk factors identified.",
+            prediction_strength="Moderate (using rule-based assessment)"
+        ),
+        risk_assessment=RiskAssessment(
+            level=risk_level,
+            score=risk_factors / 8.0,
+            factors=[f"Risk factor {i+1}" for i in range(risk_factors)],
+            protective_factors=["Seeking assessment", "Health awareness"]
+        ),
+        detailed_analysis=DetailedAnalysis(
+            primary_concerns=["Assessment pending full model deployment"],
+            contributing_factors=["Multiple factors identified"],
+            positive_indicators=["Proactive health assessment"],
+            areas_of_focus=["Professional consultation recommended"]
+        ),
+        feature_importance={"risk_factors": float(risk_factors/8.0)},
+        personalized_recommendations=[
+            PersonalizedRecommendation(
+                category="Professional Care",
+                priority="High",
+                action="Consult mental health professional",
+                description="Consider speaking with a licensed professional for comprehensive assessment.",
+                resources=["Mental health helplines", "Local healthcare providers"]
+            )
+        ],
+        educational_content=[
+            "Mental health is important for overall wellbeing",
+            "Professional assessment provides the most accurate evaluation",
+            "Early intervention can improve outcomes significantly"
+        ],
+        support_resources={
+            "National Suicide Prevention Lifeline": "988",
+            "Crisis Text Line": "Text HOME to 741741"
+        },
+        timestamp=datetime.now().isoformat(),
+        session_id=f"fallback_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    )
+
 def preprocess_input(input_data: MentalHealthInput) -> np.ndarray:
     """Preprocess input data for prediction"""
     if preprocessor is None:
-        raise HTTPException(status_code=500, detail="Preprocessor not loaded")
+        raise HTTPException(status_code=503, detail="Model not available - using fallback assessment")
     
     # Convert input to dictionary
     data_dict = input_data.dict()
@@ -442,7 +536,8 @@ async def health_check():
         status="healthy",
         timestamp=datetime.now().isoformat(),
         model_loaded=model_data is not None and preprocessor is not None,
-        version="1.0.0"
+        version="1.0.0",
+        environment=os.getenv("ENVIRONMENT", "production")
     )
 
 @app.post("/predict", response_model=EnhancedPredictionResponse)
@@ -452,11 +547,10 @@ async def predict_treatment(
 ):
     """Predict mental health treatment requirement"""
     
+    # Use fallback if models not available
     if model_data is None or preprocessor is None:
-        raise HTTPException(
-            status_code=500, 
-            detail="Model or preprocessor not loaded. Please ensure the model is trained."
-        )
+        logger.warning("Models not available, using fallback prediction")
+        return create_fallback_prediction(input_data)
     
     try:
         # Preprocess input
@@ -528,19 +622,27 @@ async def predict_treatment(
         
     except Exception as e:
         logger.error(f"Prediction error: {e}")
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+        # Return fallback on any error
+        return create_fallback_prediction(input_data)
 
 @app.get("/model-info")
 async def get_model_info(token: str = Depends(verify_token)):
     """Get model information"""
     if model_data is None:
-        raise HTTPException(status_code=500, detail="Model not loaded")
+        return {
+            "model_name": "Fallback Assessment",
+            "accuracy": "Rule-based evaluation",
+            "features_count": 0,
+            "model_type": "Fallback",
+            "status": "Models not available - using fallback assessment"
+        }
     
     return {
         "model_name": model_data.get('model_name', 'Unknown'),
         "accuracy": model_data.get('accuracy', 'Unknown'),
         "features_count": len(preprocessor['feature_columns']) if preprocessor else 0,
-        "model_type": str(type(model_data['model']).__name__) if model_data else 'Unknown'
+        "model_type": str(type(model_data['model']).__name__) if model_data else 'Unknown',
+        "status": "Models loaded successfully"
     }
 
 @app.get("/")
@@ -550,14 +652,10 @@ async def root():
         "message": "Mental Health Treatment Prediction API",
         "version": "1.0.0",
         "docs": "/docs",
-        "health": "/health"
+        "health": "/health",
+        "demo": "https://your-demo-url.railway.app"
     }
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app", 
-        host="127.0.0.1", 
-        port=8000, 
-        reload=True,
-        log_level="info"
-    ) 
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False) 
