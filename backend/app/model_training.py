@@ -198,26 +198,24 @@ class MentalHealthModelTrainer:
         except Exception as e:
             print(f"Error generating feature importance: {e}")
             return None
-            
+    
     def save_best_model(self):
-        if self.best_model is None or self.best_model_name is None:
-            print("No best model to save.")
+        if self.best_model is None:
+            print("No best model selected.")
             return
             
         model_data = {
             'model': self.best_model,
             'model_name': self.best_model_name,
             'feature_names': self.feature_names,
-            'metrics': self.results[self.best_model_name]
+            'accuracy': self.results[self.best_model_name]['accuracy'],
+            'f1_score': self.results[self.best_model_name]['f1_score']
         }
         
         with open('../models/best_model.pkl', 'wb') as f:
             pickle.dump(model_data, f)
-            
-        results_df = pd.DataFrame(self.results).T
-        results_df.to_csv('../models/model_results.csv')
         
-        print(f"Best model ({self.best_model_name}) saved successfully!")
+        print(f"Best model saved: {self.best_model_name}")
         
     def train_all_models(self):
         X_train, X_test, y_train, y_test = self.load_data()
@@ -225,23 +223,25 @@ class MentalHealthModelTrainer:
             return
             
         self.initialize_models()
+        
         trained_models = {}
         
         for model_name in self.models.keys():
-            trained_model = self.train_model(model_name, X_train, y_train)
-            trained_models[model_name] = trained_model
-            self.evaluate_model(trained_model, model_name, X_test, y_test)
+            model = self.train_model(model_name, X_train, y_train)
+            trained_models[model_name] = model
+            self.evaluate_model(model, model_name, X_test, y_test)
             
         best_model_name = self.select_best_model()
-        self.best_model = trained_models[best_model_name]
-        
-        for model_name, model in trained_models.items():
-            self.generate_feature_importance(model, model_name)
+        if best_model_name:
+            self.best_model = trained_models[best_model_name]
+            self.save_best_model()
+            self.generate_feature_importance(self.best_model, best_model_name)
             
         self.plot_model_comparison()
-        self.save_best_model()
         
-        print("Training completed successfully!")
+        print("\nTraining completed!")
+        print(f"Best model: {self.best_model_name}")
+        print("Model saved to '../models/best_model.pkl'")
 
 if __name__ == "__main__":
     trainer = MentalHealthModelTrainer()

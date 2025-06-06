@@ -69,13 +69,15 @@ yarn-error.log*
 frontend/build/
 frontend/dist/
 
-# Model files (too large for git)
+# Model files and directory (too large for git)
+models/
 *.pkl
 *.joblib
 *.model
 *.h5
 *.pt
 *.pth
+*.npy
 
 # Data files
 *.csv

@@ -30,12 +30,13 @@ const PredictionForm = ({ onPredictionResult, predictionResult }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [apiKey] = useState('demo-token-12345');
+  const [apiKey, setApiKey] = useState('demo-token-12345');
 
   const {
     control,
     handleSubmit,
     formState: { errors },
+    watch,
     trigger,
   } = useForm({
     defaultValues: {

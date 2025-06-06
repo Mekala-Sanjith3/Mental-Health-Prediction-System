@@ -9,9 +9,7 @@ from typing import Dict, List, Optional
 import os
 import logging
 from datetime import datetime
-
 import uvicorn
-from .fallback_model import FallbackModel, create_fallback_preprocessor
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -24,15 +22,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware - Updated for Vercel deployment
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://127.0.0.1:3000",
-        "https://*.vercel.app",  # Allow Vercel domains
-        "*"  # For development - remove in production
-    ],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # React app origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -100,55 +93,26 @@ def load_model():
     global model_data, preprocessor
     
     try:
-        # Try different paths for Vercel deployment
-        model_paths = [
-            "../models/best_model.pkl",
-            "./models/best_model.pkl",
-            "models/best_model.pkl",
-            "backend/models/best_model.pkl"
-        ]
-        
-        for model_path in model_paths:
-            if os.path.exists(model_path):
-                with open(model_path, 'rb') as f:
-                    model_data = pickle.load(f)
-                logger.info(f"Model loaded from {model_path}: {model_data.get('model_name', 'Unknown')}")
-                break
+        # Load model
+        model_path = "../models/best_model.pkl"
+        if os.path.exists(model_path):
+            with open(model_path, 'rb') as f:
+                model_data = pickle.load(f)
+            logger.info(f"Model loaded: {model_data['model_name']}")
         else:
-            logger.warning("Model file not found in any expected location")
+            logger.warning(f"Model file not found at {model_path}")
             
-        # Try different paths for preprocessor
-        preprocessor_paths = [
-            "../models/preprocessor.pkl",
-            "./models/preprocessor.pkl", 
-            "models/preprocessor.pkl",
-            "backend/models/preprocessor.pkl"
-        ]
-        
-        for preprocessor_path in preprocessor_paths:
-            if os.path.exists(preprocessor_path):
-                with open(preprocessor_path, 'rb') as f:
-                    preprocessor = pickle.load(f)
-                logger.info(f"Preprocessor loaded from {preprocessor_path}")
-                break
+        # Load preprocessor
+        preprocessor_path = "../models/preprocessor.pkl"
+        if os.path.exists(preprocessor_path):
+            with open(preprocessor_path, 'rb') as f:
+                preprocessor = pickle.load(f)
+            logger.info("Preprocessor loaded successfully")
         else:
-            logger.warning("Preprocessor file not found in any expected location")
+            logger.warning(f"Preprocessor file not found at {preprocessor_path}")
             
     except Exception as e:
         logger.error(f"Error loading model/preprocessor: {e}")
-        
-    # If model or preprocessor not loaded, use fallback
-    if model_data is None:
-        logger.info("Using fallback model")
-        model_data = {
-            'model': FallbackModel(),
-            'model_name': 'Fallback Rule-Based Model',
-            'accuracy': 0.65  # Estimated
-        }
-        
-    if preprocessor is None:
-        logger.info("Using fallback preprocessor")
-        preprocessor = create_fallback_preprocessor()
 
 def preprocess_input(input_data: MentalHealthInput) -> np.ndarray:
     """Preprocess input data for prediction"""
@@ -237,20 +201,19 @@ def get_feature_importance(model, feature_names: List[str], input_data: np.ndarr
         # For tree-based models
         if hasattr(model, 'feature_importances_'):
             importance = model.feature_importances_
+            feature_importance = dict(zip(feature_names, importance.tolist()))
+            sorted_importance = dict(sorted(feature_importance.items(), key=lambda x: x[1], reverse=True))
+            return dict(list(sorted_importance.items())[:10])
         # For linear models
         elif hasattr(model, 'coef_'):
             importance = np.abs(model.coef_[0])
+            feature_importance = {
+                feature_names[i]: float(importance[i]) 
+                for i in np.argsort(importance)[-5:]
+            }
+            return feature_importance
         else:
             return {}
-        
-        # Get top 5 features
-        top_indices = np.argsort(importance)[-5:]
-        top_features = {
-            feature_names[i]: float(importance[i]) 
-            for i in top_indices
-        }
-        
-        return top_features
     except Exception as e:
         logger.error(f"Error calculating feature importance: {e}")
         return {}
@@ -280,7 +243,7 @@ async def predict_treatment(
     if model_data is None or preprocessor is None:
         raise HTTPException(
             status_code=500, 
-            detail="Model or preprocessor not loaded"
+            detail="Model or preprocessor not loaded. Please ensure the model is trained."
         )
     
     try:
@@ -290,20 +253,21 @@ async def predict_treatment(
         # Make prediction
         model = model_data['model']
         prediction = model.predict(processed_data)[0]
-        prediction_proba = model.predict_proba(processed_data)[0]
+        probabilities = model.predict_proba(processed_data)[0]
         
         # Get confidence (probability of predicted class)
-        confidence = float(max(prediction_proba))
+        confidence = float(max(probabilities))
         
         # Get feature importance
+        feature_names = preprocessor['feature_columns']
         feature_importance = get_feature_importance(
             model, 
-            model_data['feature_names'], 
+            feature_names, 
             processed_data
         )
         
         # Create response
-        prediction_label = "Treatment Needed" if prediction == 1 else "No Treatment Needed"
+        prediction_label = "Treatment Recommended" if prediction == 1 else "Treatment Not Required"
         
         return PredictionResponse(
             prediction=int(prediction),
@@ -324,10 +288,10 @@ async def get_model_info(token: str = Depends(verify_token)):
         raise HTTPException(status_code=500, detail="Model not loaded")
     
     return {
-        "model_name": model_data.get("model_name", "Unknown"),
-        "model_type": str(type(model_data["model"]).__name__),
-        "feature_count": len(model_data.get("feature_names", [])),
-        "status": "loaded"
+        "model_name": model_data.get('model_name', 'Unknown'),
+        "accuracy": model_data.get('accuracy', 'Unknown'),
+        "features_count": len(preprocessor['feature_columns']) if preprocessor else 0,
+        "model_type": str(type(model_data['model']).__name__) if model_data else 'Unknown'
     }
 
 @app.get("/")
@@ -336,13 +300,14 @@ async def root():
     return {
         "message": "Mental Health Treatment Prediction API",
         "version": "1.0.0",
-        "docs": "/docs"
+        "docs": "/docs",
+        "health": "/health"
     }
 
 if __name__ == "__main__":
     uvicorn.run(
         "main:app", 
-        host="0.0.0.0", 
+        host="127.0.0.1", 
         port=8000, 
         reload=True,
         log_level="info"

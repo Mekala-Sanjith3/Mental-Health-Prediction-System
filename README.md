@@ -8,8 +8,6 @@ A comprehensive machine learning application that predicts mental health treatme
 ## 👨‍💻 Developer
 **Mekala Maria Sanjith Reddy**
 
-A sophisticated full-stack ML system showcasing modern web development and machine learning techniques.
-
 ## 🌟 Features
 
 - **Interactive Web Interface**: Multi-step form with validation
@@ -80,7 +78,6 @@ mental-health-prediction/
 │   │   ├── data_preprocessing.py  # Data preprocessing pipeline
 │   │   └── model_training.py      # ML model training
 │   ├── tests/              # Backend tests
-│   ├── Dockerfile          # Docker configuration
 │   └── requirements.txt    # Python dependencies
 ├── frontend/               # React frontend
 │   ├── public/            # Static files
@@ -88,8 +85,7 @@ mental-health-prediction/
 │   │   ├── components/    # React components
 │   │   ├── services/      # API services
 │   │   └── App.js         # Main app component
-│   ├── package.json       # Node.js dependencies
-│   └── Dockerfile         # Docker configuration
+│   └── package.json       # Node.js dependencies
 ├── data/                  # Dataset (not included in git)
 ├── models/                # Trained models (not included in git)
 ├── .gitignore
@@ -165,22 +161,6 @@ curl -X POST "http://127.0.0.1:8000/predict" \
 - Recall: ~78%
 - F1-Score: ~75%
 - ROC-AUC: ~80%
-
-## 🐳 Docker Deployment
-
-Build and run with Docker:
-
-```bash
-# Backend
-cd backend
-docker build -t mental-health-backend .
-docker run -p 8000:8000 mental-health-backend
-
-# Frontend  
-cd frontend
-docker build -t mental-health-frontend .
-docker run -p 3000:3000 mental-health-frontend
-```
 
 ## 🔒 Security
 

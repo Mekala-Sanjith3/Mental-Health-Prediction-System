@@ -10,7 +10,6 @@ import ResultsDisplay from './components/ResultsDisplay';
 import About from './components/About';
 import './App.css';
 
-
 const theme = createTheme({
   palette: {
     primary: {
@@ -69,7 +68,6 @@ function App() {
       <CssBaseline />
       <Router>
         <div className="App">
-
           <AppBar position="static" elevation={2}>
             <Toolbar>
               <PsychologyIcon sx={{ mr: 2 }} />
@@ -78,7 +76,6 @@ function App() {
               </Typography>
             </Toolbar>
           </AppBar>
-
 
           <Box sx={{ py: 4 }}>
             <Routes>
@@ -98,7 +95,6 @@ function App() {
               <Route path="/about" element={<About />} />
             </Routes>
           </Box>
-
 
           <Box 
             component="footer" 
