@@ -11,7 +11,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  Divider,
   Paper,
   Button,
   Collapse,
@@ -20,16 +19,13 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Rating,
   Avatar,
   Stack,
-  Link,
 } from '@mui/material';
 import {
   CheckCircle,
   Warning,
   TrendingUp,
-  Psychology,
   AccessTime,
   ExpandMore,
   Info,
@@ -41,7 +37,6 @@ import {
   SelfImprovement,
   Support,
   MenuBook,
-  TrendingDown,
   Assessment,
   Analytics,
 } from '@mui/icons-material';
@@ -61,14 +56,9 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-  LineChart,
-  Line,
-  Area,
-  AreaChart
 } from 'recharts';
 
 const ResultsDisplay = ({ result, onReset }) => {
-  const [expandedSections, setExpandedSections] = useState({});
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
 
   if (!result) {
@@ -87,12 +77,7 @@ const ResultsDisplay = ({ result, onReset }) => {
     timestamp
   } = result;
 
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
+
 
   // Enhanced data preparation
   const pieData = [
@@ -125,9 +110,7 @@ const ResultsDisplay = ({ result, onReset }) => {
     maxScore: 5
   }));
 
-  const COLORS = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3'];
 
-  const getResultColor = () => prediction === 1 ? 'error' : 'success';
   const getResultIcon = () => prediction === 1 ? <Warning /> : <CheckCircle />;
   
   const getConfidenceLevel = () => {
