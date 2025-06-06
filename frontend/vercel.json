@@ -1,15 +1,14 @@
 {
   "version": 2,
   "name": "mental-health-frontend",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
-    }
-  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "installCommand": "npm install",
+  "framework": "create-react-app",
+  "env": {
+    "CI": "false",
+    "REACT_APP_API_URL": "https://mental-health-prediction-system-wj25.onrender.com"
+  },
   "routes": [
     {
       "src": "/static/(.*)",
@@ -21,8 +20,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "REACT_APP_API_URL": "https://your-backend-url.onrender.com"
-  }
+  ]
 } 

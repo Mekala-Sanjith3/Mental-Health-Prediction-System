@@ -25,7 +25,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # React app origins
+    allow_origins=["*"],  # Allow all origins for demo
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -124,22 +124,35 @@ def load_model():
     
     try:
         # Load model
-        model_path = "../models/best_model.pkl"
+        model_path = "./models/best_model.pkl"
         if os.path.exists(model_path):
             with open(model_path, 'rb') as f:
                 model_data = pickle.load(f)
-            logger.info(f"Model loaded: {model_data['model_name']}")
+            logger.info("Model loaded successfully")
         else:
             logger.warning(f"Model file not found at {model_path}")
             
-        # Load preprocessor
-        preprocessor_path = "../models/preprocessor.pkl"
-        if os.path.exists(preprocessor_path):
-            with open(preprocessor_path, 'rb') as f:
-                preprocessor = pickle.load(f)
-            logger.info("Preprocessor loaded successfully")
-        else:
-            logger.warning(f"Preprocessor file not found at {preprocessor_path}")
+        # Load individual components
+        scaler_path = "./models/preprocessor.pkl"
+        encoders_path = "./models/encoders.pkl"
+        features_path = "./models/feature_names.pkl"
+        
+        preprocessor = {}
+        
+        if os.path.exists(scaler_path):
+            with open(scaler_path, 'rb') as f:
+                preprocessor['scaler'] = pickle.load(f)
+            logger.info("Scaler loaded successfully")
+        
+        if os.path.exists(encoders_path):
+            with open(encoders_path, 'rb') as f:
+                preprocessor['label_encoders'] = pickle.load(f)
+            logger.info("Encoders loaded successfully")
+            
+        if os.path.exists(features_path):
+            with open(features_path, 'rb') as f:
+                preprocessor['feature_columns'] = pickle.load(f)
+            logger.info("Feature names loaded successfully")
             
     except Exception as e:
         logger.error(f"Error loading model/preprocessor: {e}")

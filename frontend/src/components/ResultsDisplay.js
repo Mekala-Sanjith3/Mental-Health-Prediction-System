@@ -5,41 +5,24 @@ import {
   Typography,
   Box,
   Chip,
-  LinearProgress,
   Grid,
   Alert,
   List,
   ListItem,
   ListItemText,
-  Divider,
   Paper,
   Button,
-  Collapse,
-  IconButton,
-  Tooltip,
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Rating,
-  Avatar,
-  Stack,
-  Link,
-  Badge,
   Container,
 } from '@mui/material';
 import {
   CheckCircle,
   Warning,
   TrendingUp,
-  Psychology,
-  AccessTime,
   ExpandMore,
   Info,
-  LocalHospital,
-  Phone,
-  School,
-  LightbulbOutlined,
-  HealthAndSafety,
   SelfImprovement,
   Support,
   MenuBook,
@@ -49,9 +32,7 @@ import {
   Shield,
   PriorityHigh,
   PhoneInTalk,
-  Group,
   FavoriteOutlined,
-  Security,
   Timeline,
   PersonPin,
 } from '@mui/icons-material';
@@ -65,17 +46,7 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip as RechartsTooltip, 
-  ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  LineChart,
-  Line,
-  Area,
-  AreaChart,
-  Legend
+  ResponsiveContainer
 } from 'recharts';
 
 const ResultsDisplay = ({ result, onReset }) => {
@@ -151,8 +122,6 @@ const ResultsDisplay = ({ result, onReset }) => {
   })).sort((a, b) => b.importance - a.importance).slice(0, 8);
 
   const COLORS = ['#2196f3', '#4caf50', '#ff9800', '#f44336', '#9c27b0', '#00bcd4', '#8bc34a', '#ffc107'];
-
-  const getResultColor = () => prediction === 1 ? 'error' : 'success';
   const getResultIcon = () => prediction === 1 ? <Warning /> : <CheckCircle />;
   
   const getRiskLevelColor = () => {
