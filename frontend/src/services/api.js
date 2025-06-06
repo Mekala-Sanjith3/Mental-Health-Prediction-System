@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'https://mental-health-prediction-system.onrender.com';
+// For Vercel deployment, use relative URLs in production
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api'  // Vercel will route /api/* to backend
+  : (process.env.REACT_APP_API_URL || 'http://localhost:8000');
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 
 import uvicorn
+from .fallback_model import FallbackModel, create_fallback_preprocessor
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -23,16 +24,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# CORS middleware - Updated for Vercel deployment
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000", 
         "http://127.0.0.1:3000",
-        "https://mental-health-frontend.onrender.com",
-        "https://mental-health-frontend-q7qc.onrender.com",
-        "*"  # Allow all origins for demo - replace with specific domains in production
-    ],  # React app origins
+        "https://*.vercel.app",  # Allow Vercel domains
+        "*"  # For development - remove in production
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -100,26 +100,55 @@ def load_model():
     global model_data, preprocessor
     
     try:
-        # Load model
-        model_path = "../models/best_model.pkl"
-        if os.path.exists(model_path):
-            with open(model_path, 'rb') as f:
-                model_data = pickle.load(f)
-            logger.info(f"Model loaded: {model_data['model_name']}")
+        # Try different paths for Vercel deployment
+        model_paths = [
+            "../models/best_model.pkl",
+            "./models/best_model.pkl",
+            "models/best_model.pkl",
+            "backend/models/best_model.pkl"
+        ]
+        
+        for model_path in model_paths:
+            if os.path.exists(model_path):
+                with open(model_path, 'rb') as f:
+                    model_data = pickle.load(f)
+                logger.info(f"Model loaded from {model_path}: {model_data.get('model_name', 'Unknown')}")
+                break
         else:
-            logger.warning(f"Model file not found at {model_path}")
+            logger.warning("Model file not found in any expected location")
             
-        # Load preprocessor
-        preprocessor_path = "../models/preprocessor.pkl"
-        if os.path.exists(preprocessor_path):
-            with open(preprocessor_path, 'rb') as f:
-                preprocessor = pickle.load(f)
-            logger.info("Preprocessor loaded successfully")
+        # Try different paths for preprocessor
+        preprocessor_paths = [
+            "../models/preprocessor.pkl",
+            "./models/preprocessor.pkl", 
+            "models/preprocessor.pkl",
+            "backend/models/preprocessor.pkl"
+        ]
+        
+        for preprocessor_path in preprocessor_paths:
+            if os.path.exists(preprocessor_path):
+                with open(preprocessor_path, 'rb') as f:
+                    preprocessor = pickle.load(f)
+                logger.info(f"Preprocessor loaded from {preprocessor_path}")
+                break
         else:
-            logger.warning(f"Preprocessor file not found at {preprocessor_path}")
+            logger.warning("Preprocessor file not found in any expected location")
             
     except Exception as e:
         logger.error(f"Error loading model/preprocessor: {e}")
+        
+    # If model or preprocessor not loaded, use fallback
+    if model_data is None:
+        logger.info("Using fallback model")
+        model_data = {
+            'model': FallbackModel(),
+            'model_name': 'Fallback Rule-Based Model',
+            'accuracy': 0.65  # Estimated
+        }
+        
+    if preprocessor is None:
+        logger.info("Using fallback preprocessor")
+        preprocessor = create_fallback_preprocessor()
 
 def preprocess_input(input_data: MentalHealthInput) -> np.ndarray:
     """Preprocess input data for prediction"""
