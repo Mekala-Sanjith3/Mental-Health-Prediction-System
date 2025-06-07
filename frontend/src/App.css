@@ -58,7 +58,6 @@
   margin-top: 1rem;
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
   .App-main {
     padding: 10px;
@@ -69,7 +68,6 @@
   }
 }
 
-/* Animation for results */
 .results-fade-in {
   animation: fadeIn 0.5s ease-in;
 }

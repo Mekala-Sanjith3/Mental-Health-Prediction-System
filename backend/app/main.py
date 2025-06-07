@@ -11,31 +11,24 @@ import logging
 from datetime import datetime
 import uvicorn
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Initialize FastAPI app
 app = FastAPI(
     title="Mental Health Treatment Prediction API",
     description="API for predicting mental health treatment requirements using machine learning",
     version="1.0.0"
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for demo
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Security
 security = HTTPBearer()
-
-# Simple token-based authentication (for demo purposes)
-VALID_TOKENS = {"demo-token-12345"}  # In production, use proper JWT tokens
+VALID_TOKENS = {"demo-token-12345"}
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify the authentication token"""
@@ -47,7 +40,6 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         )
     return credentials.credentials
 
-# Global variables to store model and preprocessor
 model_data = None
 preprocessor = None
 
@@ -70,7 +62,6 @@ class MentalHealthInput(BaseModel):
     care_options: str = Field(..., description="Awareness of care options")
     
     class Config:
-        # This ensures field names are preserved exactly as defined
         allow_population_by_field_name = True
 
 class RiskAssessment(BaseModel):
@@ -123,10 +114,7 @@ def load_model():
     global model_data, preprocessor
     
     try:
-        # Get the directory of the current script
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # Try multiple possible model directories
         possible_dirs = [
             os.path.join(current_dir, "models"),
             os.path.join(os.path.dirname(current_dir), "models"),
@@ -147,7 +135,6 @@ def load_model():
             
         logger.info(f"Using models directory: {models_dir}")
         
-        # Load model
         model_path = os.path.join(models_dir, "best_model.pkl")
         if os.path.exists(model_path):
             with open(model_path, 'rb') as f:
@@ -158,7 +145,6 @@ def load_model():
             if os.path.exists(models_dir):
                 logger.info(f"Models directory contents: {os.listdir(models_dir)}")
             
-        # Load individual components
         scaler_path = os.path.join(models_dir, "preprocessor.pkl")
         encoders_path = os.path.join(models_dir, "encoders.pkl")
         features_path = os.path.join(models_dir, "feature_names.pkl")
@@ -194,13 +180,10 @@ def preprocess_input(input_data: MentalHealthInput) -> np.ndarray:
     if preprocessor is None:
         raise HTTPException(status_code=500, detail="Preprocessor not loaded")
     
-    # Convert input to dictionary
     data_dict = input_data.dict()
-    
-    # Convert to DataFrame
     df = pd.DataFrame([data_dict])
     
-    # Handle missing values (similar to training preprocessing)
+
     categorical_cols = df.select_dtypes(include=['object']).columns
     for col in categorical_cols:
         if df[col].isnull().sum() > 0:
@@ -209,7 +192,7 @@ def preprocess_input(input_data: MentalHealthInput) -> np.ndarray:
             else:
                 df[col].fillna('Unknown', inplace=True)
     
-    # Apply feature engineering (similar to training)
+
     binary_mappings = {
         'family_history': {'Yes': 1, 'No': 0},
         'Growing_Stress': {'Yes': 1, 'No': 0},
@@ -226,7 +209,7 @@ def preprocess_input(input_data: MentalHealthInput) -> np.ndarray:
         if col in df.columns:
             df[col] = df[col].map(mapping)
     
-    # Handle ordinal features
+
     if 'Mood_Swings' in df.columns:
         mood_mapping = {'Low': 0, 'Medium': 1, 'High': 2}
         df['Mood_Swings'] = df['Mood_Swings'].map(mood_mapping)
@@ -245,7 +228,7 @@ def preprocess_input(input_data: MentalHealthInput) -> np.ndarray:
         care_mapping = {'Yes': 1, 'No': 0, 'Not sure': 0.5}
         df['care_options'] = df['care_options'].map(care_mapping)
     
-    # Encode categorical features
+
     categorical_cols = ['Gender', 'Country', 'Occupation']
     for col in categorical_cols:
         if col in df.columns and col in preprocessor['label_encoders']:
@@ -253,19 +236,15 @@ def preprocess_input(input_data: MentalHealthInput) -> np.ndarray:
             try:
                 df[col] = le.transform(df[col].astype(str))
             except ValueError:
-                # Handle unseen categories
                 df[col] = 0
     
-    # Ensure all feature columns are present
+
     feature_columns = preprocessor['feature_columns']
     for col in feature_columns:
         if col not in df.columns:
             df[col] = 0
     
-    # Reorder columns to match training data
     df = df[feature_columns]
-    
-    # Scale the features
     scaled_data = preprocessor['scaler'].transform(df)
     
     return scaled_data
@@ -273,13 +252,11 @@ def preprocess_input(input_data: MentalHealthInput) -> np.ndarray:
 def get_feature_importance(model, feature_names: List[str], input_data: np.ndarray) -> Dict[str, float]:
     """Get feature importance for the prediction"""
     try:
-        # For tree-based models
         if hasattr(model, 'feature_importances_'):
             importance = model.feature_importances_
             feature_importance = dict(zip(feature_names, importance.tolist()))
             sorted_importance = dict(sorted(feature_importance.items(), key=lambda x: x[1], reverse=True))
             return dict(list(sorted_importance.items())[:10])
-        # For linear models
         elif hasattr(model, 'coef_'):
             importance = np.abs(model.coef_[0])
             feature_importance = {
@@ -297,7 +274,7 @@ def generate_risk_assessment(input_data: MentalHealthInput, prediction: int, con
     risk_factors = []
     protective_factors = []
     
-    # Analyze input for risk factors
+
     if input_data.family_history == "Yes":
         risk_factors.append("Family history of mental health issues")
     if input_data.Mental_Health_History == "Yes":
@@ -315,7 +292,7 @@ def generate_risk_assessment(input_data: MentalHealthInput, prediction: int, con
     if input_data.Mood_Swings == "High":
         risk_factors.append("Frequent mood fluctuations")
     
-    # Analyze protective factors
+
     if input_data.Work_Interest == "Yes":
         protective_factors.append("Maintained interest in work activities")
     if input_data.care_options == "Yes":
@@ -327,7 +304,7 @@ def generate_risk_assessment(input_data: MentalHealthInput, prediction: int, con
     if input_data.family_history == "No" and input_data.Mental_Health_History == "No":
         protective_factors.append("No significant mental health history")
     
-    # Determine risk level
+
     if prediction == 1 and confidence >= 0.8:
         level = "High"
         score = 0.8 + (confidence - 0.8) * 0.2 / 0.2
@@ -437,14 +414,14 @@ def generate_detailed_analysis(input_data: MentalHealthInput, feature_importance
     positive_indicators = []
     areas_of_focus = []
     
-    # Analyze based on feature importance and input values
+
     top_features = list(feature_importance.keys())[:5]
     
     for feature in top_features:
         if feature in ['Growing_Stress', 'Coping_Struggles', 'Mental_Health_History'] and getattr(input_data, feature, 'No') == 'Yes':
             primary_concerns.append(f"{feature.replace('_', ' ').title()}")
     
-    # Contributing factors
+
     if input_data.family_history == "Yes":
         contributing_factors.append("Genetic predisposition and family history")
     if input_data.Days_Indoors in ["31-60 days", "More than 2 months"]:
@@ -452,7 +429,7 @@ def generate_detailed_analysis(input_data: MentalHealthInput, feature_importance
     if input_data.Changes_Habits == "Yes":
         contributing_factors.append("Recent lifestyle disruptions")
     
-    # Positive indicators
+
     if input_data.Work_Interest == "Yes":
         positive_indicators.append("Maintained work engagement and motivation")
     if input_data.mental_health_interview == "Yes":
@@ -460,7 +437,7 @@ def generate_detailed_analysis(input_data: MentalHealthInput, feature_importance
     if input_data.care_options == "Yes":
         positive_indicators.append("Awareness of available support systems")
     
-    # Areas of focus
+
     if input_data.Mood_Swings in ["Medium", "High"]:
         areas_of_focus.append("Emotional regulation and mood stability")
     if input_data.Social_Weakness == "Yes":
@@ -477,12 +454,10 @@ def generate_detailed_analysis(input_data: MentalHealthInput, feature_importance
 
 @app.on_event("startup")
 async def startup_event():
-    """Load model on startup"""
     load_model()
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint"""
     return HealthResponse(
         status="healthy",
         timestamp=datetime.now().isoformat(),
@@ -495,7 +470,6 @@ async def predict_treatment(
     input_data: MentalHealthInput,
     token: str = Depends(verify_token)
 ):
-    """Predict mental health treatment requirement"""
     
     if model_data is None or preprocessor is None:
         raise HTTPException(
@@ -504,18 +478,13 @@ async def predict_treatment(
         )
     
     try:
-        # Preprocess input
         processed_data = preprocess_input(input_data)
         
-        # Make prediction
-        model = model_data  # model_data is the actual model, not a dictionary
+        model = model_data
         prediction = model.predict(processed_data)[0]
         probabilities = model.predict_proba(processed_data)[0]
         
-        # Get confidence (probability of predicted class)
         confidence = float(max(probabilities))
-        
-        # Get feature importance
         feature_names = preprocessor['feature_columns']
         feature_importance = get_feature_importance(
             model, 
@@ -523,7 +492,7 @@ async def predict_treatment(
             processed_data
         )
         
-        # Generate enhanced response components
+
         prediction_label = "Treatment Recommended" if prediction == 1 else "Treatment Not Required"
         
         confidence_level = "Very High" if confidence >= 0.8 else "High" if confidence >= 0.7 else "Moderate" if confidence >= 0.6 else "Low"
@@ -577,7 +546,6 @@ async def predict_treatment(
 
 @app.get("/model-info")
 async def get_model_info(token: str = Depends(verify_token)):
-    """Get model information"""
     if model_data is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
     
@@ -588,44 +556,15 @@ async def get_model_info(token: str = Depends(verify_token)):
         "model_type": str(type(model_data).__name__) if model_data else 'Unknown'
     }
 
-@app.get("/debug")
-async def debug_info():
-    """Debug endpoint to check deployment status"""
-    import os
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    debug_info = {
-        "current_directory": os.getcwd(),
-        "script_directory": current_dir,
-        "model_loaded": model_data is not None,
-        "preprocessor_loaded": preprocessor is not None,
-        "directory_contents": os.listdir('.'),
-    }
-    
-    # Check for models directory
-    possible_dirs = [
-        os.path.join(current_dir, "models"),
-        os.path.join(os.path.dirname(current_dir), "models"),
-        "models"
-    ]
-    
-    for dir_path in possible_dirs:
-        if os.path.exists(dir_path):
-            debug_info[f"models_dir_{dir_path}"] = os.listdir(dir_path)
-        else:
-            debug_info[f"models_dir_{dir_path}"] = "NOT_FOUND"
-    
-    return debug_info
+
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
     return {
         "message": "Mental Health Treatment Prediction API",
         "version": "1.0.0",
         "docs": "/docs",
-        "health": "/health",
-        "debug": "/debug"
+        "health": "/health"
     }
 
 if __name__ == "__main__":

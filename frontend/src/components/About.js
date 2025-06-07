@@ -37,7 +37,7 @@ const About = () => {
         </Typography>
 
         <Grid container spacing={4} sx={{ mt: 2 }}>
-          {/* Project Overview */}
+          
           <Grid item xs={12}>
             <Card elevation={3}>
               <CardContent>
@@ -62,7 +62,7 @@ const About = () => {
             </Card>
           </Grid>
 
-          {/* Technology Stack */}
+         
           <Grid item xs={12} md={6}>
             <Card elevation={3}>
               <CardContent>

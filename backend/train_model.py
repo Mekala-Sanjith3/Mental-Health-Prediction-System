@@ -11,9 +11,8 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def load_and_preprocess_data():
-    """Load and preprocess the mental health dataset"""
     try:
-        # Try multiple possible data paths
+
         data_paths = [
             '../data/Mental Health Dataset.csv',
             '../../data/Mental Health Dataset.csv',
@@ -32,10 +31,10 @@ def load_and_preprocess_data():
             print("Dataset not found in any expected location, creating synthetic data for demo...")
             return create_synthetic_data()
         
-        # Basic preprocessing
+
         df = df.dropna()
         
-        # Define the features we need
+
         required_features = [
             'Gender', 'Country', 'Occupation', 'self_employed', 'family_history',
             'Days_Indoors', 'Growing_Stress', 'Changes_Habits', 'Mental_Health_History',
@@ -43,7 +42,7 @@ def load_and_preprocess_data():
             'mental_health_interview', 'care_options', 'treatment'
         ]
         
-        # Check if required columns exist
+
         missing_cols = [col for col in required_features if col not in df.columns]
         if missing_cols:
             print(f"Missing columns: {missing_cols}")
@@ -57,7 +56,6 @@ def load_and_preprocess_data():
         return create_synthetic_data()
 
 def create_synthetic_data():
-    """Create synthetic data for demo purposes"""
     print("Creating synthetic dataset for demo...")
     np.random.seed(42)
     n_samples = 1000
@@ -80,7 +78,6 @@ def create_synthetic_data():
         'care_options': np.random.choice(['Yes', 'No', 'Not sure'], n_samples),
     }
     
-    # Create target variable based on some logic
     treatment = []
     for i in range(n_samples):
         score = 0
@@ -90,7 +87,7 @@ def create_synthetic_data():
         if data['Mood_Swings'][i] == 'High': score += 2
         if data['Coping_Struggles'][i] == 'Yes': score += 2
         
-        # Add some randomness
+
         score += np.random.randint(-2, 3)
         treatment.append('Yes' if score >= 4 else 'No')
     
@@ -98,7 +95,6 @@ def create_synthetic_data():
     return pd.DataFrame(data)
 
 def encode_features(df):
-    """Encode categorical features"""
     encoders = {}
     encoded_df = df.copy()
     
@@ -120,17 +116,17 @@ def encode_features(df):
 def main():
     print("Starting model training...")
     
-    # Create models directory - handle different possible locations
+
     possible_models_dirs = ['app/models', 'models', '../app/models']
     models_dir = None
     
-    # Try to find existing models directory first
+
     for dir_path in possible_models_dirs:
         if os.path.exists(dir_path):
             models_dir = dir_path
             break
     
-    # If no existing directory, create app/models
+
     if models_dir is None:
         models_dir = 'app/models'
         os.makedirs(models_dir, exist_ok=True)
@@ -140,26 +136,24 @@ def main():
     print(f"Current working directory: {os.getcwd()}")
     print(f"Directory contents: {os.listdir('.')}")
     
-    # Load and preprocess data
+
     df = load_and_preprocess_data()
     print(f"Dataset shape: {df.shape}")
     
-    # Encode features
     encoded_df, encoders = encode_features(df)
     
-    # Prepare features and target
     X = encoded_df.drop('treatment', axis=1)
     y = LabelEncoder().fit_transform(encoded_df['treatment'])
     
-    # Split data
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    # Scale features
+
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
-    # Train models
+
     models = {
         'RandomForest': RandomForestClassifier(n_estimators=100, random_state=42),
         'LogisticRegression': LogisticRegression(random_state=42, max_iter=1000)
@@ -173,7 +167,7 @@ def main():
         print(f"\nTraining {name}...")
         model.fit(X_train_scaled, y_train)
         
-        # Evaluate
+
         y_pred = model.predict(X_test_scaled)
         accuracy = accuracy_score(y_test, y_pred)
         print(f"{name} Accuracy: {accuracy:.4f}")
@@ -185,7 +179,7 @@ def main():
     
     print(f"\nBest model: {best_name} with accuracy: {best_score:.4f}")
     
-    # Save the best model and preprocessors
+
     with open(f'{models_dir}/best_model.pkl', 'wb') as f:
         pickle.dump(best_model, f)
     
@@ -195,7 +189,7 @@ def main():
     with open(f'{models_dir}/encoders.pkl', 'wb') as f:
         pickle.dump(encoders, f)
     
-    # Save feature names
+
     feature_names = list(X.columns)
     with open(f'{models_dir}/feature_names.pkl', 'wb') as f:
         pickle.dump(feature_names, f)

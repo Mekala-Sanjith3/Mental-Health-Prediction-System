@@ -37,20 +37,16 @@ const PredictionAPI = {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const response = await apiClient.post('/predict', data, { headers });
     
-    // Enhanced response structure validation
     const result = response.data;
     
-    // Ensure backward compatibility while supporting enhanced features
     return {
       ...result,
-      // Legacy fields for backward compatibility
       confidence: result.confidence_metrics?.overall || 0,
       prediction: result.prediction,
       prediction_label: result.prediction_label,
       feature_importance: result.feature_importance || {},
       timestamp: result.timestamp,
       
-      // Enhanced fields
       confidence_metrics: result.confidence_metrics || {
         overall: result.confidence || 0,
         level: 'Unknown',
@@ -97,14 +93,7 @@ const PredictionAPI = {
     return response.data;
   },
 
-  async getDebugInfo() {
-    try {
-      const response = await apiClient.get('/debug');
-      return response.data;
-    } catch (error) {
-      throw new Error(`Debug info failed: ${error.message}`);
-    }
-  },
+
 };
 
 export default PredictionAPI; 
