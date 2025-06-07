@@ -121,13 +121,24 @@ def main():
     print("Starting model training...")
     
     # Create models directory - handle different possible locations
-    models_dir = 'models'
-    if not os.path.exists(models_dir):
+    possible_models_dirs = ['app/models', 'models', '../app/models']
+    models_dir = None
+    
+    # Try to find existing models directory first
+    for dir_path in possible_models_dirs:
+        if os.path.exists(dir_path):
+            models_dir = dir_path
+            break
+    
+    # If no existing directory, create app/models
+    if models_dir is None:
         models_dir = 'app/models'
-        if not os.path.exists(models_dir):
-            os.makedirs(models_dir, exist_ok=True)
+        os.makedirs(models_dir, exist_ok=True)
     
     print(f"Using models directory: {models_dir}")
+    print(f"Models directory exists: {os.path.exists(models_dir)}")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Directory contents: {os.listdir('.')}")
     
     # Load and preprocess data
     df = load_and_preprocess_data()
