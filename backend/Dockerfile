@@ -21,6 +21,9 @@ COPY . .
 # Create models directory
 RUN mkdir -p models
 
+# Train the model
+RUN python train_model.py
+
 # Set Python path
 ENV PYTHONPATH=/app
 
