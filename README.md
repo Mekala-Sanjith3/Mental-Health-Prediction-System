@@ -229,7 +229,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Mekala Maria Sanjith Reddy**
 
 - GitHub: [@Mekala-Sanjith3](https://github.com/Mekala-Sanjith3)
-- LinkedIn: [Mekala Maria Sanjith Reddy](https://linkedin.com/in/mekala-sanjith)
+- LinkedIn: [Mekala Maria Sanjith Reddy](https://www.linkedin.com/in/mekala-maria-sanjith-reddy-625239330/)
 
 ## 🙏 Acknowledgments
 
