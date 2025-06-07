@@ -13,14 +13,24 @@ warnings.filterwarnings('ignore')
 def load_and_preprocess_data():
     """Load and preprocess the mental health dataset"""
     try:
-        # Try to load the dataset
-        data_path = '../data/Mental Health Dataset.csv'
-        if not os.path.exists(data_path):
-            print("Dataset not found, creating synthetic data for demo...")
-            return create_synthetic_data()
+        # Try multiple possible data paths
+        data_paths = [
+            '../data/Mental Health Dataset.csv',
+            '../../data/Mental Health Dataset.csv',
+            'data/Mental Health Dataset.csv',
+            'Mental Health Dataset.csv'
+        ]
         
-        df = pd.read_csv(data_path)
-        print(f"Loaded dataset with {len(df)} rows and {len(df.columns)} columns")
+        df = None
+        for data_path in data_paths:
+            if os.path.exists(data_path):
+                df = pd.read_csv(data_path)
+                print(f"Loaded dataset from {data_path} with {len(df)} rows and {len(df.columns)} columns")
+                break
+        
+        if df is None:
+            print("Dataset not found in any expected location, creating synthetic data for demo...")
+            return create_synthetic_data()
         
         # Basic preprocessing
         df = df.dropna()
@@ -110,8 +120,14 @@ def encode_features(df):
 def main():
     print("Starting model training...")
     
-    # Create models directory
-    os.makedirs('models', exist_ok=True)
+    # Create models directory - handle different possible locations
+    models_dir = 'models'
+    if not os.path.exists(models_dir):
+        models_dir = 'app/models'
+        if not os.path.exists(models_dir):
+            os.makedirs(models_dir, exist_ok=True)
+    
+    print(f"Using models directory: {models_dir}")
     
     # Load and preprocess data
     df = load_and_preprocess_data()
@@ -159,26 +175,26 @@ def main():
     print(f"\nBest model: {best_name} with accuracy: {best_score:.4f}")
     
     # Save the best model and preprocessors
-    with open('models/best_model.pkl', 'wb') as f:
+    with open(f'{models_dir}/best_model.pkl', 'wb') as f:
         pickle.dump(best_model, f)
     
-    with open('models/preprocessor.pkl', 'wb') as f:
+    with open(f'{models_dir}/preprocessor.pkl', 'wb') as f:
         pickle.dump(scaler, f)
     
-    with open('models/encoders.pkl', 'wb') as f:
+    with open(f'{models_dir}/encoders.pkl', 'wb') as f:
         pickle.dump(encoders, f)
     
     # Save feature names
     feature_names = list(X.columns)
-    with open('models/feature_names.pkl', 'wb') as f:
+    with open(f'{models_dir}/feature_names.pkl', 'wb') as f:
         pickle.dump(feature_names, f)
     
     print("\nModel training completed!")
     print("Saved files:")
-    print("- models/best_model.pkl")
-    print("- models/preprocessor.pkl")
-    print("- models/encoders.pkl")
-    print("- models/feature_names.pkl")
+    print(f"- {models_dir}/best_model.pkl")
+    print(f"- {models_dir}/preprocessor.pkl")
+    print(f"- {models_dir}/encoders.pkl")
+    print(f"- {models_dir}/feature_names.pkl")
 
 if __name__ == "__main__":
     main() 

@@ -8,6 +8,7 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import PredictionForm from './components/PredictionForm';
 import ResultsDisplay from './components/ResultsDisplay';
 import About from './components/About';
+import DebugPanel from './components/DebugPanel';
 import './App.css';
 
 const theme = createTheme({
@@ -82,10 +83,13 @@ function App() {
               <Route 
                 path="/" 
                 element={
-                  <PredictionForm 
-                    onPredictionResult={handlePredictionResult}
-                    predictionResult={predictionResult}
-                  />
+                  <>
+                    <DebugPanel />
+                    <PredictionForm 
+                      onPredictionResult={handlePredictionResult}
+                      predictionResult={predictionResult}
+                    />
+                  </>
                 } 
               />
               <Route 

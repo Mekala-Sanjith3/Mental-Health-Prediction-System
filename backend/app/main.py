@@ -125,7 +125,27 @@ def load_model():
     try:
         # Get the directory of the current script
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        models_dir = os.path.join(current_dir, "models")
+        
+        # Try multiple possible model directories
+        possible_dirs = [
+            os.path.join(current_dir, "models"),
+            os.path.join(os.path.dirname(current_dir), "models"),
+            "models"
+        ]
+        
+        models_dir = None
+        for dir_path in possible_dirs:
+            if os.path.exists(dir_path):
+                models_dir = dir_path
+                break
+        
+        if models_dir is None:
+            logger.error("Models directory not found in any expected location")
+            logger.info(f"Current working directory: {os.getcwd()}")
+            logger.info(f"Script directory: {current_dir}")
+            return
+            
+        logger.info(f"Using models directory: {models_dir}")
         
         # Load model
         model_path = os.path.join(models_dir, "best_model.pkl")
@@ -135,9 +155,6 @@ def load_model():
             logger.info(f"Model loaded successfully from {model_path}")
         else:
             logger.warning(f"Model file not found at {model_path}")
-            logger.info(f"Current working directory: {os.getcwd()}")
-            logger.info(f"Script directory: {current_dir}")
-            logger.info(f"Models directory: {models_dir}")
             if os.path.exists(models_dir):
                 logger.info(f"Models directory contents: {os.listdir(models_dir)}")
             
@@ -491,7 +508,7 @@ async def predict_treatment(
         processed_data = preprocess_input(input_data)
         
         # Make prediction
-        model = model_data['model']
+        model = model_data  # model_data is the actual model, not a dictionary
         prediction = model.predict(processed_data)[0]
         probabilities = model.predict_proba(processed_data)[0]
         
@@ -565,11 +582,40 @@ async def get_model_info(token: str = Depends(verify_token)):
         raise HTTPException(status_code=500, detail="Model not loaded")
     
     return {
-        "model_name": model_data.get('model_name', 'Unknown'),
-        "accuracy": model_data.get('accuracy', 'Unknown'),
+        "model_name": "RandomForest",
+        "accuracy": "Unknown",
         "features_count": len(preprocessor['feature_columns']) if preprocessor else 0,
-        "model_type": str(type(model_data['model']).__name__) if model_data else 'Unknown'
+        "model_type": str(type(model_data).__name__) if model_data else 'Unknown'
     }
+
+@app.get("/debug")
+async def debug_info():
+    """Debug endpoint to check deployment status"""
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    debug_info = {
+        "current_directory": os.getcwd(),
+        "script_directory": current_dir,
+        "model_loaded": model_data is not None,
+        "preprocessor_loaded": preprocessor is not None,
+        "directory_contents": os.listdir('.'),
+    }
+    
+    # Check for models directory
+    possible_dirs = [
+        os.path.join(current_dir, "models"),
+        os.path.join(os.path.dirname(current_dir), "models"),
+        "models"
+    ]
+    
+    for dir_path in possible_dirs:
+        if os.path.exists(dir_path):
+            debug_info[f"models_dir_{dir_path}"] = os.listdir(dir_path)
+        else:
+            debug_info[f"models_dir_{dir_path}"] = "NOT_FOUND"
+    
+    return debug_info
 
 @app.get("/")
 async def root():
@@ -578,7 +624,8 @@ async def root():
         "message": "Mental Health Treatment Prediction API",
         "version": "1.0.0",
         "docs": "/docs",
-        "health": "/health"
+        "health": "/health",
+        "debug": "/debug"
     }
 
 if __name__ == "__main__":

@@ -96,6 +96,15 @@ const PredictionAPI = {
     const response = await apiClient.get('/');
     return response.data;
   },
+
+  async getDebugInfo() {
+    try {
+      const response = await apiClient.get('/debug');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Debug info failed: ${error.message}`);
+    }
+  },
 };
 
 export default PredictionAPI; 
